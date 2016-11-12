@@ -43,11 +43,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private static final String TAG = "MainActivity";
     private static final String STATE_HOME = "HOME";
     private static final String STATE_ROAD = "ROAD";
+    private static final String STATE_WORK = "WORK";
     private static final String WIFI_HOME = "\"Loading...\"";
+    private static final String WIFI_WORK = "\"VTAS-MyWiFi\"";
     private static final int UPDATE_INTERVAL = 1000;
     private static final int FASTEST_INTERVAL = 1000; // in ms
     private static final int SMALLEST_DISPLACEMENT = 5; // in meters
     private static final String HOME_ADDRESS_LINE = "12303 Coral Reef Drive";
+    private static final String WORK_ADDRESS_LINE = "801 International Parkway";
 
     private static String currentState = "";
     private GoogleApiClient googleApiClient;
@@ -106,17 +109,23 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 }
 
                 WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                String SSID = wifiManager.getConnectionInfo().getSSID();
                 Log.d(TAG, "Wifi ====" + wifiManager.getConnectionInfo().getSSID());
 
-                if ( (wifiManager.getConnectionInfo().getSSID().equals(WIFI_HOME) || addresses.get(0).getAddressLine(0).equals(HOME_ADDRESS_LINE))
-                        && currentState.equals(STATE_ROAD) ) {
+                if ( (SSID.equals(WIFI_HOME) || addresses.get(0).getAddressLine(0).equals(HOME_ADDRESS_LINE))
+                        && !currentState.equals(STATE_HOME) ) {
                     // When you were on the road and you just came back and connected to the Wifi
                     logInfo("Sweet home Alabama");
                     atHome();
-                } else if (!wifiManager.getConnectionInfo().getSSID().equals(WIFI_HOME) && currentState.equals(STATE_HOME)) {
+                } else if (wifiManager.getConnectionInfo().getNetworkId() == -1 && !currentState.equals(STATE_ROAD)) {
                     // When you were at home and left the Wifi
                     logInfo("Riders on the storm");
                     onTheRoad();
+                } else if ( (SSID.equals(WIFI_WORK) || addresses.get(0).getAddressLine(0).equals(WORK_ADDRESS_LINE))
+                        && !currentState.equals(STATE_WORK) ) {
+                    // When you are at work
+                    logInfo("Work your ass off");
+                    atWork();
                 }
             }
 
@@ -190,6 +199,18 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         generateNotification("At Home!", "Activated");
     }
 
+    private void atWork() {
+        currentState = STATE_WORK;
+        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        wifiManager.setWifiEnabled(true);
+
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter.isEnabled()) {
+            bluetoothAdapter.disable();
+            logInfo("Bluetooth has been switched off");
+        }
+        generateNotification("At Home!", "Activated");
+    }
     private void generateNotification(String title, String text) {
 
         Intent notificationIntent = new Intent(this, MainActivity.class);
